@@ -154,49 +154,33 @@ public class CalendarFrame extends JFrame implements ClockTicker.TimeListener {
 
         JMenuItem addItem = new JMenuItem("Dodaj event");
         addItem.addActionListener(e -> {
-            int year = Integer.parseInt(yearField.getText());
-            int month = monthComboBox.getSelectedIndex() + 1;
-            openAddEventDialog(year, month, ZonedDateTime.now().getDayOfMonth(), -1, null);
+            try {
+                int year = Integer.parseInt(yearField.getText());
+                int month = monthComboBox.getSelectedIndex() + 1;
+                openAddEventDialog(year, month, ZonedDateTime.now().getDayOfMonth(), -1, null);
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Niepoprawny rok.", "Błąd", JOptionPane.ERROR_MESSAGE);
+            }
         });
         eventMenu.add(addItem);
 
-        JMenuItem editItem = new JMenuItem("Edytuj event");
-        editItem.addActionListener(e -> {
+        // Nowa, globalna opcja zarządzania (edycja i usuwanie z poziomu tabeli)
+        JMenuItem manageItem = new JMenuItem("Zarządzaj wydarzeniami");
+        manageItem.addActionListener(e -> {
             if (eventManager.getEvents().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Brak wydarzeń do edycji.", "Informacja", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Brak wydarzeń w kalendarzu.", "Informacja", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            EventSelectionDialog editDialog = new EventSelectionDialog(this, eventManager, "Wybierz event do edycji");
-            editDialog.setVisible(true);
-            int editIndex = editDialog.getSelectedIndex();
-            if (editIndex != -1) {
-                CalendarEvent eventToEdit = eventManager.getEvents().get(editIndex);
-                openAddEventDialog(
-                        eventToEdit.getEventDateTime().getYear(),
-                        eventToEdit.getEventDateTime().getMonthValue(),
-                        eventToEdit.getEventDateTime().getDayOfMonth(),
-                        editIndex,
-                        eventToEdit
-                );
-            }
+            GlobalEventsDialog globalDialog = new GlobalEventsDialog(this, eventManager);
+            globalDialog.setVisible(true);
+            // Odświeżamy widok kalendarza w tle po zamknięciu okna globalnego
+            try {
+                int year = Integer.parseInt(yearField.getText());
+                int month = monthComboBox.getSelectedIndex() + 1;
+                calendarPanel.updateCalendar(year, month);
+            } catch (NumberFormatException ignored) {}
         });
-        eventMenu.add(editItem);
-
-        JMenuItem deleteItem = new JMenuItem("Usuń event");
-        deleteItem.addActionListener(e -> {
-            if (eventManager.getEvents().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Brak wydarzeń do usunięcia.", "Informacja", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            EventSelectionDialog delDialog = new EventSelectionDialog(this, eventManager, "Wybierz event do usunięcia");
-            delDialog.setVisible(true);
-            int delIndex = delDialog.getSelectedIndex();
-            if (delIndex != -1) {
-                eventManager.removeEvent(delIndex);
-                JOptionPane.showMessageDialog(this, "Wydarzenie zostało usunięte.", "Sukces", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-        eventMenu.add(deleteItem);
+        eventMenu.add(manageItem);
 
         menuBar.add(eventMenu);
         setJMenuBar(menuBar);
@@ -218,47 +202,30 @@ public class CalendarFrame extends JFrame implements ClockTicker.TimeListener {
 
         MenuItem addEventItem = new MenuItem("Dodaj wydarzenie");
         addEventItem.addActionListener(e -> SwingUtilities.invokeLater(() -> {
-            openAddEventDialog(Integer.parseInt(yearField.getText()), monthComboBox.getSelectedIndex() + 1, 1, -1, null);
+            try {
+                int year = Integer.parseInt(yearField.getText());
+                int month = monthComboBox.getSelectedIndex() + 1;
+                openAddEventDialog(year, month, 1, -1, null);
+            } catch (NumberFormatException ignored) {}
         }));
         popup.add(addEventItem);
 
-        MenuItem editEventItem = new MenuItem("Edytuj wydarzenie...");
-        editEventItem.addActionListener(e -> SwingUtilities.invokeLater(() -> {
+        // Globalne zarządzanie również z poziomu TrayIcon
+        MenuItem manageEventItem = new MenuItem("Zarządzaj wydarzeniami...");
+        manageEventItem.addActionListener(e -> SwingUtilities.invokeLater(() -> {
             if (eventManager.getEvents().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Brak wydarzeń do edycji.", "Informacja", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Brak wydarzeń w kalendarzu.", "Informacja", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            EventSelectionDialog editDialog = new EventSelectionDialog(null, eventManager, "Wybierz event do edycji");
-            editDialog.setVisible(true);
-            int editIndex = editDialog.getSelectedIndex();
-            if (editIndex != -1) {
-                CalendarEvent eventToEdit = eventManager.getEvents().get(editIndex);
-                openAddEventDialog(
-                        eventToEdit.getEventDateTime().getYear(),
-                        eventToEdit.getEventDateTime().getMonthValue(),
-                        eventToEdit.getEventDateTime().getDayOfMonth(),
-                        editIndex,
-                        eventToEdit
-                );
-            }
+            GlobalEventsDialog globalDialog = new GlobalEventsDialog(this, eventManager);
+            globalDialog.setVisible(true);
+            try {
+                int year = Integer.parseInt(yearField.getText());
+                int month = monthComboBox.getSelectedIndex() + 1;
+                calendarPanel.updateCalendar(year, month);
+            } catch (NumberFormatException ignored) {}
         }));
-        popup.add(editEventItem);
-
-        MenuItem deleteEventItem = new MenuItem("Usuń wydarzenie...");
-        deleteEventItem.addActionListener(e -> SwingUtilities.invokeLater(() -> {
-            if (eventManager.getEvents().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Brak wydarzeń do usunięcia.", "Informacja", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            EventSelectionDialog delDialog = new EventSelectionDialog(null, eventManager, "Wybierz event do usunięcia");
-            delDialog.setVisible(true);
-            int delIndex = delDialog.getSelectedIndex();
-            if (delIndex != -1) {
-                eventManager.removeEvent(delIndex);
-                JOptionPane.showMessageDialog(null, "Wydarzenie zostało usunięte.", "Sukces", JOptionPane.INFORMATION_MESSAGE);
-            }
-        }));
-        popup.add(deleteEventItem);
+        popup.add(manageEventItem);
 
         popup.addSeparator();
 
@@ -291,7 +258,7 @@ public class CalendarFrame extends JFrame implements ClockTicker.TimeListener {
                 eventManager.addEvent(dialog.getEventTitle(), dialog.getEventDateTime());
                 JOptionPane.showMessageDialog(this, "Wydarzenie zostało dodane pomyślnie!", "Sukces", JOptionPane.INFORMATION_MESSAGE);
             } else {
-                eventManager.updateEvent(editIndex, dialog.getEventTitle(), dialog.getEventDateTime());
+                eventManager.updateEvent(editIndex, dialog.getEventTitle(), dialog.getEventDescription(), dialog.getEventDateTime());
                 JOptionPane.showMessageDialog(this, "Wydarzenie zostało zaktualizowane!", "Sukces", JOptionPane.INFORMATION_MESSAGE);
             }
         }

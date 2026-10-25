@@ -10,32 +10,35 @@ public class EventDialog extends JDialog {
 
     private boolean confirmed = false;
     private String eventTitle;
+    private String eventDescription;
     private LocalDateTime eventDateTime;
 
     public EventDialog(Window owner, String dialogTitle, int year, int month, int day, CalendarEvent existingEvent) {
         super(owner, dialogTitle, ModalityType.APPLICATION_MODAL);
-        setSize(380, 220);
+        setSize(420, 320);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout(10, 10));
 
-        JPanel panel = new JPanel(new GridLayout(3, 2, 8, 8));
+        JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
         JTextField titleField = new JTextField(existingEvent != null ? existingEvent.getTitle() : "");
+        JTextArea descArea = new JTextArea(existingEvent != null ? existingEvent.getDescription() : "", 3, 20);
+        descArea.setLineWrap(true);
+        descArea.setWrapStyleWord(true);
+        JScrollPane descScroll = new JScrollPane(descArea);
 
-        // 1. Osobny JSpinner dla DATY
         SpinnerDateModel dateModel = new SpinnerDateModel();
         JSpinner dateSpinner = new JSpinner(dateModel);
-        JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd");
-        dateSpinner.setEditor(dateEditor);
+        dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd"));
 
-        // 2. Osobny JSpinner dla GODZINY
         SpinnerDateModel timeModel = new SpinnerDateModel();
         JSpinner timeSpinner = new JSpinner(timeModel);
-        JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(timeSpinner, "HH:mm");
-        timeSpinner.setEditor(timeEditor);
+        timeSpinner.setEditor(new JSpinner.DateEditor(timeSpinner, "HH:mm"));
 
-        // Ustawienie wartości początkowych
         if (existingEvent != null) {
             Date date = Date.from(existingEvent.getEventDateTime().atZone(ZoneId.systemDefault()).toInstant());
             dateSpinner.setValue(date);
@@ -47,12 +50,25 @@ public class EventDialog extends JDialog {
             timeSpinner.setValue(date);
         }
 
-        panel.add(new JLabel("Nazwa wydarzenia:"));
-        panel.add(titleField);
-        panel.add(new JLabel("Data (YYYY-MM-DD):"));
-        panel.add(dateSpinner);
-        panel.add(new JLabel("Godzina (HH:MM):"));
-        panel.add(timeSpinner);
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Nazwa:"), gbc);
+        gbc.gridx = 1;
+        panel.add(titleField, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(new JLabel("Data (YYYY-MM-DD):"), gbc);
+        gbc.gridx = 1;
+        panel.add(dateSpinner, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 2;
+        panel.add(new JLabel("Godzina (HH:MM):"), gbc);
+        gbc.gridx = 1;
+        panel.add(timeSpinner, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 3;
+        panel.add(new JLabel("Notatka:"), gbc);
+        gbc.gridx = 1;
+        panel.add(descScroll, gbc);
 
         add(panel, BorderLayout.CENTER);
 
@@ -74,6 +90,7 @@ public class EventDialog extends JDialog {
             LocalTime localTime = selectedTimePart.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
 
             this.eventTitle = title;
+            this.eventDescription = descArea.getText().trim();
             this.eventDateTime = LocalDateTime.of(localDate, localTime);
             this.confirmed = true;
             dispose();
@@ -86,15 +103,8 @@ public class EventDialog extends JDialog {
         add(btnPanel, BorderLayout.SOUTH);
     }
 
-    public boolean isConfirmed() {
-        return confirmed;
-    }
-
-    public String getEventTitle() {
-        return eventTitle;
-    }
-
-    public LocalDateTime getEventDateTime() {
-        return eventDateTime;
-    }
+    public boolean isConfirmed() { return confirmed; }
+    public String getEventTitle() { return eventTitle; }
+    public String getEventDescription() { return eventDescription; }
+    public LocalDateTime getEventDateTime() { return eventDateTime; }
 }
