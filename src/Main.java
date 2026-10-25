@@ -31,13 +31,19 @@ public class Main {
      * Próbuje założyć blokadę na plik w folderze domowym użytkownika.
      * Zwraca true, jeśli to pierwsza instancja, lub false, jeśli program już działa.
      */
+
+    @SuppressWarnings("resource")
     private static boolean isAppActive() {
         try {
             File lockFile = new File(System.getProperty("user.home"), ".calendar_app/app.lock");
 
-            // Upewnij się, że katalog istnieje
-            if (!lockFile.getParentFile().exists()) {
-                lockFile.getParentFile().mkdirs();
+            File parentDir = lockFile.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                // Sprawdzamy wynik mkdirs(), żeby IntelliJ nie zgłaszało ostrzeżenia
+                boolean isCreated = parentDir.mkdirs();
+                if (!isCreated && !parentDir.exists()) {
+                    return false;
+                }
             }
 
             channel = new RandomAccessFile(lockFile, "rw").getChannel();

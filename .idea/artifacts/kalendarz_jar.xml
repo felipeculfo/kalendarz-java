@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="kalendarz:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/kalendarz_jar</output-path>
+    <root id="archive" name="kalendarz.jar">
+      <element id="module-output" name="kalendarz" />
+    </root>
+  </artifact>
+</component>

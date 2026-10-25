@@ -21,7 +21,7 @@ public class DayEventsDialog extends JDialog {
         this.month = month;
         this.day = day;
 
-        setSize(450, 320);
+        setSize(520, 340);
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout(10, 10));
 
@@ -49,10 +49,21 @@ public class DayEventsDialog extends JDialog {
         scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
         add(scrollPane, BorderLayout.CENTER);
 
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 10));
 
-        JButton addButton = new JButton("Dodaj wydarzenie");
-        addButton.addActionListener(e -> openAddDialogForThisDay());
+        JButton addButton = new JButton("Dodaj");
+        addButton.addActionListener(e -> openAddOrEditDialog(null));
+
+        // Nowy przycisk Edytuj
+        JButton editButton = new JButton("Edytuj zaznaczone");
+        editButton.addActionListener(e -> {
+            CalendarEvent selectedEvent = eventJList.getSelectedValue();
+            if (selectedEvent != null) {
+                openAddOrEditDialog(selectedEvent);
+            } else {
+                JOptionPane.showMessageDialog(this, "Wybierz wydarzenie z listy do edycji.", "Błąd", JOptionPane.WARNING_MESSAGE);
+            }
+        });
 
         JButton deleteButton = new JButton("Usuń zaznaczone");
         deleteButton.addActionListener(e -> {
@@ -72,6 +83,7 @@ public class DayEventsDialog extends JDialog {
         closeButton.addActionListener(e -> dispose());
 
         bottomPanel.add(addButton);
+        bottomPanel.add(editButton);
         bottomPanel.add(deleteButton);
         bottomPanel.add(closeButton);
 
@@ -100,40 +112,22 @@ public class DayEventsDialog extends JDialog {
         }
     }
 
-    private void openAddDialogForThisDay() {
-        JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
-        JTextField titleField = new JTextField();
+    private void openAddOrEditDialog(CalendarEvent existingEvent) {
+        String dialogTitle = (existingEvent == null) ? "Nowe wydarzenie" : "Edycja wydarzenia";
 
-        SpinnerDateModel dateModel = new SpinnerDateModel();
-        JSpinner dateTimeSpinner = new JSpinner(dateModel);
-        JSpinner.DateEditor editor = new JSpinner.DateEditor(dateTimeSpinner, "yyyy-MM-dd HH:mm");
-        dateTimeSpinner.setEditor(editor);
+        EventDialog dialog = new EventDialog(this, dialogTitle, year, month, day, existingEvent);
+        dialog.setVisible(true);
 
-        LocalDateTime initialDT = LocalDateTime.of(year, month, day, 12, 0);
-        java.util.Date date = java.util.Date.from(initialDT.atZone(java.time.ZoneId.systemDefault()).toInstant());
-        dateTimeSpinner.setValue(date);
-
-        panel.add(new JLabel("Nazwa wydarzenia:"));
-        panel.add(titleField);
-        panel.add(new JLabel("Data i godzina:"));
-        panel.add(dateTimeSpinner);
-
-        int result = JOptionPane.showConfirmDialog(this, panel, "Nowe wydarzenie (" + year + "-" + month + "-" + day + ")", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (result == JOptionPane.OK_OPTION) {
-            try {
-                String title = titleField.getText().trim();
-                if (title.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Nazwa wydarzenia nie może być pusta.", "Błąd", JOptionPane.ERROR_MESSAGE);
-                    return;
+        if (dialog.isConfirmed()) {
+            if (existingEvent == null) {
+                eventManager.addEvent(dialog.getEventTitle(), dialog.getEventDateTime());
+            } else {
+                int actualIndex = eventManager.getEvents().indexOf(existingEvent);
+                if (actualIndex != -1) {
+                    eventManager.updateEvent(actualIndex, dialog.getEventTitle(), dialog.getEventDateTime());
                 }
-                java.util.Date selectedDate = (java.util.Date) dateTimeSpinner.getValue();
-                LocalDateTime eventTime = selectedDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
-
-                eventManager.addEvent(title, eventTime);
-                refreshEventList();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Wprowadzono niepoprawne dane.", "Błąd", JOptionPane.ERROR_MESSAGE);
             }
+            refreshEventList();
         }
     }
 }

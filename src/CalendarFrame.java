@@ -281,52 +281,18 @@ public class CalendarFrame extends JFrame implements ClockTicker.TimeListener {
     }
 
     private void openAddEventDialog(int year, int month, int day, int editIndex, CalendarEvent existingEvent) {
-        JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
+        String title = (existingEvent == null) ? "Nowe wydarzenie" : "Edycja wydarzenia";
 
-        JTextField titleField = new JTextField(existingEvent != null ? existingEvent.getTitle() : "");
+        EventDialog dialog = new EventDialog(this, title, year, month, day, existingEvent);
+        dialog.setVisible(true);
 
-        SpinnerDateModel dateModel = new SpinnerDateModel();
-        JSpinner dateTimeSpinner = new JSpinner(dateModel);
-        JSpinner.DateEditor editor = new JSpinner.DateEditor(dateTimeSpinner, "yyyy-MM-dd HH:mm");
-        dateTimeSpinner.setEditor(editor);
-
-        if (existingEvent != null) {
-            java.util.Date date = java.util.Date.from(existingEvent.getEventDateTime().atZone(java.time.ZoneId.systemDefault()).toInstant());
-            dateTimeSpinner.setValue(date);
-        } else {
-            LocalDateTime initialDT = LocalDateTime.of(year, month, day, 12, 0);
-            java.util.Date date = java.util.Date.from(initialDT.atZone(java.time.ZoneId.systemDefault()).toInstant());
-            dateTimeSpinner.setValue(date);
-        }
-
-        panel.add(new JLabel("Nazwa wydarzenia:"));
-        panel.add(titleField);
-        panel.add(new JLabel("Data i godzina:"));
-        panel.add(dateTimeSpinner);
-
-        String dialogTitle = (existingEvent == null) ? "Nowe wydarzenie" : "Edycja wydarzenia";
-        int result = JOptionPane.showConfirmDialog(this, panel, dialogTitle, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (result == JOptionPane.OK_OPTION) {
-            try {
-                String title = titleField.getText().trim();
-                if (title.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Nazwa wydarzenia nie może być pusta.", "Błąd", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                java.util.Date selectedDate = (java.util.Date) dateTimeSpinner.getValue();
-                LocalDateTime eventTime = selectedDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
-
-                if (editIndex == -1) {
-                    eventManager.addEvent(title, eventTime);
-                    JOptionPane.showMessageDialog(this, "Wydarzenie zostało dodane pomyślnie!", "Sukces", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    eventManager.updateEvent(editIndex, title, eventTime);
-                    JOptionPane.showMessageDialog(this, "Wydarzenie zostało zaktualizowane!", "Sukces", JOptionPane.INFORMATION_MESSAGE);
-                }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Wprowadzono niepoprawne dane.", "Błąd", JOptionPane.ERROR_MESSAGE);
+        if (dialog.isConfirmed()) {
+            if (editIndex == -1) {
+                eventManager.addEvent(dialog.getEventTitle(), dialog.getEventDateTime());
+                JOptionPane.showMessageDialog(this, "Wydarzenie zostało dodane pomyślnie!", "Sukces", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                eventManager.updateEvent(editIndex, dialog.getEventTitle(), dialog.getEventDateTime());
+                JOptionPane.showMessageDialog(this, "Wydarzenie zostało zaktualizowane!", "Sukces", JOptionPane.INFORMATION_MESSAGE);
             }
         }
     }
