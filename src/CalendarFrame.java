@@ -39,6 +39,17 @@ public class CalendarFrame extends JFrame implements ClockTicker.TimeListener {
         setSize(480, 540);
         setResizable(false);
 
+// Poprawiona ścieżka do zasobu (bezwzględna od roota classpath)
+        try {
+            // W konstruktorze CalendarFrame oraz w createImageForTray():
+            ImageIcon icon = new ImageIcon(getClass().getResource("/Calendar.png"));
+            if (icon.getImage() != null) {
+                setIconImage(icon.getImage());
+            }
+        } catch (Exception e) {
+            // Ignorujemy, jeśli plik nie zostanie znaleziony, aplikacja ruszy bez ikony
+        }
+
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -268,6 +279,17 @@ public class CalendarFrame extends JFrame implements ClockTicker.TimeListener {
     private void restoreFromTray() { setVisible(true); setExtendedState(JFrame.NORMAL); toFront(); }
 
     private Image createImageForTray() {
+        try {
+            // Wczytujemy ikonę bezpośrednio z zasobów projektu
+            ImageIcon icon = new ImageIcon(getClass().getResource("/Calendar.png"));
+            if (icon != null && icon.getImage() != null) {
+                // Skalujemy do standardowego rozmiaru ikon system tray (np. 16x16 lub 24x24)
+                Image img = icon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
+                return img;
+            }
+        } catch (Exception e) {
+            System.err.println("Nie udało się wczytać ikony system tray: " + e.getMessage());
+        }
         int width = 16, height = 16;
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = img.createGraphics();
